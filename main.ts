@@ -102,7 +102,7 @@ export default class EgoRock extends Plugin {
 		const reports = this.getReportNames()
 		const report = commandString.split(' ')[0]
 		if (reports.includes(report)) {
-			const newCommand = `${taskwarriorBin.trim()} rc.detection:off rc.defaultwidth:1000 ${commandString}`
+			const newCommand = `${taskwarriorBin.trim()} rc.detection:off rc.defaultwidth:1000 ${commandString.split(' ').slice(1).join(' ')} ${report}`
 			const asciiTable = execSync(newCommand).toString().split('\n')
 			    .filter((line) => {
 					if (line.match(/^[ -]*$/)) return false
