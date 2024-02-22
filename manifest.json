@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
+	"id": "ego-rock",
+	"name": "Ego Rock",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
-	"isDesktopOnly": false
+	"description": "A basic taskwarrior UI for listing and modifying tasks.",
+	"author": "Ashton Eby",
+	"authorUrl": "https://blog.echobravoyahoo.net",
+	"fundingUrl": "https://blog.echobravoyahoo.net",
+	"isDesktopOnly": true
 }

@@ -1,0 +1,19 @@
+```task-table
+command: task +home limit:50 list
+rowActions:
+  complete: done
+  snooze: wait:now+7days
+  delete: delete
+```
+
+```task-creator
+customizers:
+  due:
+    type: calendar
+	default: today
+  tags:
+    type: stringList
+	default:
+	  - today
+	  - visible
+```
