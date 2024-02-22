@@ -1,6 +1,6 @@
 {
 	"name": "ego-rock",
-	"version": "1.0.0",
+	"version": "1.0.2",
 	"description": "A plugin for Obsidian that allows viewing taskwarrior tasks.",
 	"main": "main.js",
 	"scripts": {
