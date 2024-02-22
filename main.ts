@@ -1,17 +1,17 @@
-import { App, Editor, MarkdownView, Modal, Plugin, PluginSettingTab, Setting, Notice } from 'obsidian';
+import { Plugin, Notice, MarkdownPostProcessor } from 'obsidian';
 import { exec, execSync }  from 'child_process'
 import { parse } from 'yaml'
 
-interface MyPluginSettings {
-	mySetting: string;
+interface Settings {
+	taskBinaryPath: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: Settings = {
+	taskBinaryPath: 'wsl task'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class EgoRock extends Plugin {
+	settings: Settings;
 
 	async onload() {
 		this.addRibbonIcon('dice', 'Task lookup', () => {
@@ -25,28 +25,12 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		this.registerMarkdownCodeBlockProcessor('task-table', (source, element, context) => {
-			const div = element.createEl('div')
-			div.innerHTML = 'input: ' + JSON.stringify(parse(source))
-
-			const div2 = element.createEl('div')
-			// div2.innerHTML = 'first item: ' + JSON.stringify(this.doCommand('waiting'), null, 4)
-			const reportDetails = this.getReport('waiting')
-			const div3 = element.createEl('div')
-			// div3.innerHTML = 'report details: ' + JSON.stringify(reportDetails, null, 4)
-
-			const columnNames = reportDetails.labels.split(',')
-			const columnKeys = reportDetails.columns.split(',')
-			const rows = this.doCommand('waiting')
-			console.log('here')
-			div2.innerHTML = 'columns: ' + JSON.stringify(columnNames)
-			div3.innerHTML = 'first row: ' + JSON.stringify(rows[0])
-
+			console.debug('input:', JSON.stringify(parse(source)))
 			this.doCommandReturnString(parse(source).command, element)
 		})
 	}
 
 	onunload() {
-
 	}
 
 	buildTable(tableDescription: any, el: any) {
@@ -54,17 +38,19 @@ export default class MyPlugin extends Plugin {
 		const tableEl = el.createEl('table')
 		const headerEl = tableEl.createEl('thead').createEl('tr')
 		for (let i = 0; i < columns.length; i++) {
-			const column = headerEl.createEl('th', { attr: { scope: 'col' } })
-			// column.innerHTML = columnNames[i]
-			column.innerHTML = columns[i].columnName
+			headerEl.createEl('th', {
+				attr: { scope: 'col' },
+				text: columns[i].columnName
+			})
 		}
 		const body = tableEl.createEl('tbody')
 		for (let i = 0; i < rows.length; i++) {
-			// TODO: promote id or description to th with attr scope row: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table
 			const rowEl = body.createEl('tr')
 			for (let j = 0; j < columns.length; j++) {
-				const cellEl = rowEl.createEl('td')
-				cellEl.innerHTML = rows[i][columns[j].columnName]
+				rowEl.createEl('td', {
+					text: rows[i][columns[j].columnName],
+					attr: { scope: columns[j].columnName.toLowerCase() === 'id' ? 'row' : undefined }
+				})
 			}
 		}
 	}
