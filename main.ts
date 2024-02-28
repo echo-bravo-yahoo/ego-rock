@@ -1,13 +1,40 @@
-import { Plugin, Notice, MarkdownPostProcessor } from 'obsidian';
-import { exec, execSync }  from 'child_process'
-import { parse } from 'yaml'
+import { Plugin, parseYaml, PluginSettingTab, Setting, App } from 'obsidian';
+import { execSync }  from 'child_process'
 
 interface Settings {
 	taskBinaryPath: string;
 }
 
 const DEFAULT_SETTINGS: Settings = {
-	taskBinaryPath: 'wsl task'
+	taskBinaryPath: 'task'
+}
+
+export class EgoRockSettingsTab extends PluginSettingTab {
+	plugin: EgoRock
+
+	constructor(app: App, plugin: EgoRock) {
+		super(app, plugin)
+		this.plugin = plugin
+	}
+
+	display(): void {
+		let { containerEl } = this
+
+		containerEl.empty()
+
+		new Setting(containerEl)
+			.setName('Taskwarrior binary path')
+			.setDesc('The path to the taskwarrior binary. If task is on the system PATH, "task" should work. Otherwise, provide an absolute path. WSL systems can invoke taskwarrior running in WSL from windows with the path "wsl task".')
+			.addText((text) =>
+				text
+					.setPlaceholder("task")
+					.setValue(this.plugin.settings.taskBinaryPath)
+					.onChange(async (value) => {
+						this.plugin.settings.taskBinaryPath = value
+						await this.plugin.saveSettings()
+					})
+			)
+	}
 }
 
 export default class EgoRock extends Plugin {
@@ -15,6 +42,7 @@ export default class EgoRock extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+		this.addSettingTab(new EgoRockSettingsTab(this.app, this))
 
 		this.registerMarkdownCodeBlockProcessor('task-table', (source, element, context) => {
 			this.doCommandReturnString(parseYaml(source).command, element, this.settings.taskBinaryPath)
@@ -87,9 +115,9 @@ export default class EgoRock extends Plugin {
 	doCommandReturnString(commandString: string, el: any, taskwarriorBin='wsl task') {
 		commandString = commandString.replace(/^task /, '')
 		const reports = this.getReportNames()
-		const report = commandString.split(' ')[0]
+		const report = commandString.split(' ').slice(-1)[0]
 		if (reports.includes(report)) {
-			const newCommand = `${taskwarriorBin.trim()} rc.detection:off rc.defaultwidth:1000 ${commandString.split(' ').slice(1).join(' ')} ${report}`
+			const newCommand = `${taskwarriorBin.trim()} rc.detection:off rc.defaultwidth:1000 ${commandString}`
 			const asciiTable = execSync(newCommand).toString().split('\n')
 			    .filter((line) => {
 					if (line.match(/^[ -]*$/)) return false

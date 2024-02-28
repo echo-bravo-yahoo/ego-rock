@@ -5,7 +5,7 @@ This is an [Obsidian](https://obsidian.md) plugin that allows viewing [taskwarri
 ## Task tables
 To include a table of tasks, use a `task-table` code block. The text inside the code block is parsed as YAML; include a key called `command` with the taskwarrior command that should be executed to generate the table. The syntax for this is exactly the same as the taskwarrior CLI syntax except that:
 
-- The report name must immediately follow `task`. For example, `task list +nonsense` is legal, but `task +nonsense list` is not.
+- The report name must be the last token, and will not be defaulted if not provided. For example, `task +nonsense list` is legal, but `task list +nonsense` and `task +nonsense` are not.
 - Some overrides are provided so the resulting ascii table can be parsed to an HTML table; `rc.detection` is set to `off`, and `rc.defaultWidth` is set to `1000`.
 
 A basic use-case might look like:
