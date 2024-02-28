@@ -14,19 +14,10 @@ export default class EgoRock extends Plugin {
 	settings: Settings;
 
 	async onload() {
-		this.addRibbonIcon('dice', 'Task lookup', () => {
-			exec('wsl task list limit:1', (error, stdout, stderr) => {
-				console.log(stdout)
-				if (error) new Notice(error.message)
-				else if (stderr && !stdout) new Notice(stderr)
-				else new Notice(stdout/*.split('\n').join('\t')*/)
-			})
-		})
 		await this.loadSettings();
 
 		this.registerMarkdownCodeBlockProcessor('task-table', (source, element, context) => {
-			console.debug('input:', JSON.stringify(parse(source)))
-			this.doCommandReturnString(parse(source).command, element)
+			this.doCommandReturnString(parseYaml(source).command, element, this.settings.taskBinaryPath)
 		})
 	}
 
@@ -78,10 +69,6 @@ export default class EgoRock extends Plugin {
 			}
 		}
 
-		for(let i = 0; i < indices.length; i++) {
-			console.log(indices[i].columnName, header.slice(indices[i].startIndex, indices[i].endIndex))
-		}
-
 		for(let rowIndex = 1; rowIndex < table.length; rowIndex++) {
 			let rowObj: Record<string, any> = {}
 			for (let columnIndex = 0; columnIndex < indices.length; columnIndex++) {
@@ -110,7 +97,6 @@ export default class EgoRock extends Plugin {
 					if (line.match(/^\d+ tasks, \d+ shown*$/)) return false
 					return true
 				})
-			console.log(newCommand)
 			return this.buildTable(this.buildTableDescription(asciiTable), el)
 		} else {
 			throw new Error(`Taskwarrior command must be a report, was: ${report}.`)
@@ -122,7 +108,6 @@ export default class EgoRock extends Plugin {
 		const report = commandString.split(' ')[0]
 		if (reports.includes(report)) {
 			const newCommand = `${taskwarriorBin.trim()} ${this.buildCommandForReport(report)}`
-			console.log(newCommand)
 			return JSON.parse(execSync(newCommand).toString())
 		} else if (report === 'export') {
 			return JSON.parse(execSync(`${taskwarriorBin.trim()} ${commandString}`).toString())

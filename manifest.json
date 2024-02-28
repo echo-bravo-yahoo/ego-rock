@@ -1,11 +1,10 @@
 {
 	"id": "ego-rock",
 	"name": "Ego Rock",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"minAppVersion": "0.15.0",
 	"description": "A basic taskwarrior UI for listing and modifying tasks.",
 	"author": "Ashton Eby",
 	"authorUrl": "https://blog.echobravoyahoo.net",
-	"fundingUrl": "https://blog.echobravoyahoo.net",
 	"isDesktopOnly": true
 }
