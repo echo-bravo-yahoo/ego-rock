@@ -18,14 +18,14 @@ command: task list
 You can use [custom reports](https://taskwarrior.org/docs/report/#custom-reports) as well as all of taskwarrior's [filter expressions](https://taskwarrior.org/docs/filter/):
 ````
 ```task-table
-command: task custom-report /.*ing$/ or +work
+command: task /.*ing$/ or +work custom-report
 ```
 ````
 
 You can also provide [command line overrides](https://taskwarrior.org/docs/configuration/#command-line-override); these are often useful for setting a context for a report or modifying a report's presentation when used in Obsidian (but not via the command line):
 ````
 ```task-table
-command: task list rc.context:home rc.report.list.filter:"status:pending"
+command: task rc.context:home rc.report.list.filter:"status:pending" list
 ```
 ````
 
