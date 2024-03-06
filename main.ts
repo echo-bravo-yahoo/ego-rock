@@ -45,7 +45,7 @@ export default class EgoRock extends Plugin {
 		this.addSettingTab(new EgoRockSettingsTab(this.app, this))
 
 		this.registerMarkdownCodeBlockProcessor('task-table', (source, element, context) => {
-			this.doCommandReturnString(parseYaml(source).command, element, this.settings.taskBinaryPath)
+			this.doCommandReturnString(parseYaml(source).command, element)
 		})
 	}
 
@@ -112,10 +112,11 @@ export default class EgoRock extends Plugin {
 		return [indices, rows]
 	}
 
-	doCommandReturnString(commandString: string, el: any, taskwarriorBin='wsl task') {
+	doCommandReturnString(commandString: string, el: any) {
 		commandString = commandString.replace(/^task /, '')
 		const reports = this.getReportNames()
 		const report = commandString.split(' ').slice(-1)[0]
+		const taskwarriorBin = this.settings.taskBinaryPath
 		if (reports.includes(report)) {
 			const newCommand = `${taskwarriorBin.trim()} rc.detection:off rc.defaultwidth:1000 ${commandString}`
 			const asciiTable = execSync(newCommand).toString().split('\n')
@@ -131,9 +132,10 @@ export default class EgoRock extends Plugin {
 		}
 	}
 
-	doCommand(commandString: string, taskwarriorBin='wsl task') {
+	doCommand(commandString: string) {
 		const reports = this.getReportNames()
 		const report = commandString.split(' ')[0]
+		const taskwarriorBin = this.settings.taskBinaryPath
 		if (reports.includes(report)) {
 			const newCommand = `${taskwarriorBin.trim()} ${this.buildCommandForReport(report)}`
 			return JSON.parse(execSync(newCommand).toString())
@@ -171,7 +173,8 @@ export default class EgoRock extends Plugin {
 	}
 
 	getReports() {
-		const lines = execSync('wsl task show report').toString().split('\n').filter(line => line.match(/^report\..+/))
+		const taskwarriorBin = this.settings.taskBinaryPath
+		const lines = execSync(`${taskwarriorBin} task show report`).toString().split('\n').filter(line => line.match(/^report\..+/))
 		return lines
 	}
 
