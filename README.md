@@ -28,6 +28,8 @@ You can also provide [command line overrides](https://taskwarrior.org/docs/confi
 command: task rc.context:home rc.report.list.filter:"status:pending" list
 ```
 ````
+## ASCII task tables
+To include an ASCII table of tasks, use a `task-table-ascii` code block. The text inside is parsed the same as a `task-table` code block, except that the output is rendered as monospace ASCII instead of as an HTML table. You will likely need to include an override for the defaultWidth so lines are not wrapped; 80 appears to work for most situations. For example, `command: task rc.defaultwidth:80 project:home list`
 
 ## Developer Guide
 ### Releasing new releases

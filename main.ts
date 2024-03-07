@@ -1,8 +1,8 @@
-import { Plugin, parseYaml, PluginSettingTab, Setting, App } from 'obsidian';
+import { Plugin, parseYaml, PluginSettingTab, Setting, App, MarkdownRenderer, MarkdownPostProcessorContext } from 'obsidian'
 import { execSync }  from 'child_process'
 
 interface Settings {
-	taskBinaryPath: string;
+	taskBinaryPath: string
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -14,6 +14,7 @@ export class EgoRockSettingsTab extends PluginSettingTab {
 
 	constructor(app: App, plugin: EgoRock) {
 		super(app, plugin)
+		this.app = app
 		this.plugin = plugin
 	}
 
@@ -27,7 +28,7 @@ export class EgoRockSettingsTab extends PluginSettingTab {
 			.setDesc('The path to the taskwarrior binary. If task is on the system PATH, "task" should work. Otherwise, provide an absolute path. WSL systems can invoke taskwarrior running in WSL from windows with the path "wsl task".')
 			.addText((text) =>
 				text
-					.setPlaceholder("task")
+					.setPlaceholder('task')
 					.setValue(this.plugin.settings.taskBinaryPath)
 					.onChange(async (value) => {
 						this.plugin.settings.taskBinaryPath = value
@@ -38,21 +39,29 @@ export class EgoRockSettingsTab extends PluginSettingTab {
 }
 
 export default class EgoRock extends Plugin {
-	settings: Settings;
+	settings: Settings
 
 	async onload() {
-		await this.loadSettings();
+		await this.loadSettings()
 		this.addSettingTab(new EgoRockSettingsTab(this.app, this))
 
 		this.registerMarkdownCodeBlockProcessor('task-table', (source, element, context) => {
-			this.doCommandReturnString(parseYaml(source).command, element)
+			this.doCommand(parseYaml(source).command, false, this.buildHTMLTable, [element, context])
+		})
+
+		this.registerMarkdownCodeBlockProcessor('task-table-ascii', (source, element, context) => {
+			this.doCommand(parseYaml(source).command, true, this.buildASCIITable, [element, context])
 		})
 	}
 
 	onunload() {
 	}
 
-	buildTable(tableDescription: any, el: any) {
+	buildASCIITable(rawTable: string, el: any, context: MarkdownPostProcessorContext) {
+		MarkdownRenderer.render(this.app, '```\n' + rawTable + '\n```', el, context.sourcePath, this)
+	}
+
+	buildHTMLTable(tableDescription: any, el: any) {
 		const [columns, rows] = tableDescription
 		const tableEl = el.createEl('table')
 		const headerEl = tableEl.createEl('thead').createEl('tr')
@@ -112,38 +121,32 @@ export default class EgoRock extends Plugin {
 		return [indices, rows]
 	}
 
-	doCommandReturnString(commandString: string, el: any) {
-		commandString = commandString.replace(/^task /, '')
+	buildCommand(commandString: string) {
 		const reports = this.getReportNames()
-		const report = commandString.split(' ').slice(-1)[0]
+		const report = commandString.replace(/^task /, '').split(' ').slice(-1)[0]
 		const taskwarriorBin = this.settings.taskBinaryPath
 		if (reports.includes(report)) {
-			const newCommand = `${taskwarriorBin.trim()} rc.detection:off rc.defaultwidth:1000 ${commandString}`
-			const asciiTable = execSync(newCommand).toString().split('\n')
-			    .filter((line) => {
-					if (line.match(/^[ -]*$/)) return false
-					if (line.match(/^\d+ tasks*$/)) return false
-					if (line.match(/^\d+ tasks, \d+ shown*$/)) return false
-					return true
-				})
-			return this.buildTable(this.buildTableDescription(asciiTable), el)
+			if (!commandString.contains('rc.defaultwidth:')) commandString = `rc.defaultwidth:1000 ${commandString}`
+			if (!commandString.contains('rc.detection:')) commandString = `rc.detection:off ${commandString}`
+			return `${taskwarriorBin.trim()} ${commandString}`
 		} else {
 			throw new Error(`Taskwarrior command must be a report, was: ${report}.`)
 		}
 	}
 
-	doCommand(commandString: string) {
-		const reports = this.getReportNames()
-		const report = commandString.split(' ')[0]
-		const taskwarriorBin = this.settings.taskBinaryPath
-		if (reports.includes(report)) {
-			const newCommand = `${taskwarriorBin.trim()} ${this.buildCommandForReport(report)}`
-			return JSON.parse(execSync(newCommand).toString())
-		} else if (report === 'export') {
-			return JSON.parse(execSync(`${taskwarriorBin.trim()} ${commandString}`).toString())
-		} else {
-			throw new Error(`Taskwarrior command must either be a report or export, was: ${report}.`)
-		}
+	filterOutputToTable(output: Buffer) {
+		return output.toString().split('\n')
+			.filter((line) => {
+				if (line.match(/^[ -]*$/)) return false
+				if (line.match(/^\d+ tasks*$/)) return false
+				if (line.match(/^\d+ tasks, \d+ shown*$/)) return false
+				return true
+			})
+	}
+
+	doCommand(commandString: string, raw: boolean, processor: any, processorArgs: any) {
+		const asciiTable = this.filterOutputToTable(execSync(this.buildCommand(commandString)))
+		return processor.call(this, raw ? asciiTable.join('\n') : this.buildTableDescription(asciiTable), ...processorArgs)
 	}
 
 	getReport(report: string) {
@@ -159,28 +162,13 @@ export default class EgoRock extends Plugin {
 		}, {} as Record<string, string>)
 	}
 
-	// TODO: merge with user-provided info
-	buildCommandForReport(report: string) {
-		return this.getReports().reduce((result, line) => {
-			const regex = RegExp(`report\.${report}.([^ ]*) +(.+)`)
-			const matches = regex.exec(line)
-			if (matches) {
-				return `${result} rc.${matches[1]}="${matches[2]}"`
-			} else {
-				return result
-			}
-		}, 'export')
-	}
-
 	getReports() {
 		const taskwarriorBin = this.settings.taskBinaryPath
-		const lines = execSync(`${taskwarriorBin} task show report`).toString().split('\n').filter(line => line.match(/^report\..+/))
-		return lines
+		return execSync(`${taskwarriorBin} show report`).toString().split('\n').filter(line => line.match(/^report\..+/))
 	}
 
 	getReportNames() {
 		return this.getReports().reduce((result, line) => {
-			// TODO: could this be report.regex instead of regex.regex? see getReportSettings
 			const matches = /^[^\.]+\.([^\.]+).*/.exec(line)
 			if (matches && matches[1] && !result.includes(matches[1]))
 				return [ ...result, matches[1] ]
@@ -188,23 +176,11 @@ export default class EgoRock extends Plugin {
 		}, [] as String[])
 	}
 
-	// we could instead use export, but that won't work with reports
-	// we could read the report, _then_ export with the report's filter provided
-	// but for now, let's take the easy / naive way out
-	parseReport(reportString: string) {
-		const lines = reportString.split('\n').filter(line => !!line)
-		const columns = lines[0].split(' ').filter(line => !!line)
-		return {
-			columns: columns,
-			rows: lines.slice(1)
-		}
-	}
-
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
 	}
 
 	async saveSettings() {
-		await this.saveData(this.settings);
+		await this.saveData(this.settings)
 	}
 }
