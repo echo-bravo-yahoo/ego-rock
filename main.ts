@@ -101,7 +101,7 @@ export default class EgoRock extends Plugin {
 	buildHTMLTable(tableDescription: any, el: any, context: any, config: any) {
 		const [columns, rows] = tableDescription
     const actionsRowEl = el.createEl('div')
-    if (config.actions.contains('refresh')) {
+    if (config.actions && config.actions.contains('refresh')) {
       const refreshButton = actionsRowEl.createEl('button', { text: 'Refresh' })
       refreshButton.on('click', 'button', () => {
         el.replaceChildren()
@@ -197,12 +197,13 @@ export default class EgoRock extends Plugin {
 	}
 
   doCommand(commandString: string, raw: boolean, processor: any, errorProcessor: any, processorArgs: any) {
+    let asciiTable
     try {
-      const asciiTable = this.filterOutputToTable(execSync(this.buildCommand(commandString)))
-      return processor.call(this, raw ? asciiTable.join('\n') : this.buildTableDescription(asciiTable), ...processorArgs)
+      asciiTable = this.filterOutputToTable(execSync(this.buildCommand(commandString)))
     } catch (error) {
       return errorProcessor.call(this, error, ...processorArgs)
     }
+    return processor.call(this, raw ? asciiTable.join('\n') : this.buildTableDescription(asciiTable), ...processorArgs)
   }
 
 	getReport(report: string) {
