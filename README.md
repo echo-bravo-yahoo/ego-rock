@@ -61,7 +61,7 @@ actions:
 ### Releasing new releases
 - Commit your changes with a useful commit message that does not mention versioning.
 - Run `npm version <patch|minor|major>`.
-- Run `git push && git push $VERSION_TAG`.
+- Run `git push && git push origin "$VERSION_TAG"`.
 
 ### Improve code quality with eslint (optional)
 - [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
