@@ -51,7 +51,7 @@ export default class EgoRock extends Plugin {
         false,
         this.buildHTMLTable,
         this.handleHTMLTableError,
-        [element, context]
+        [element, context, parseYaml(source)]
       )
 		})
 
@@ -98,8 +98,22 @@ export default class EgoRock extends Plugin {
 		MarkdownRenderer.render(this.app, '```\n' + error.message + '\n```', element, context.sourcePath, this)
   }
 
-	buildHTMLTable(tableDescription: any, el: any) {
+	buildHTMLTable(tableDescription: any, el: any, context: any, config: any) {
 		const [columns, rows] = tableDescription
+    const actionsRowEl = el.createEl('div')
+    if (config.actions.contains('refresh')) {
+      const refreshButton = actionsRowEl.createEl('button', { text: 'Refresh' })
+      refreshButton.on('click', 'button', () => {
+        el.replaceChildren()
+        this.doCommand(
+          config.command,
+          false,
+          this.buildHTMLTable,
+          this.handleHTMLTableError,
+          [el, context, config]
+        )
+      })
+    }
 		const tableEl = el.createEl('table')
 		const headerEl = tableEl.createEl('thead').createEl('tr')
 		for (let i = 0; i < columns.length; i++) {

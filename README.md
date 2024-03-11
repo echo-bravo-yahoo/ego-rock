@@ -2,7 +2,8 @@
 
 This is an [Obsidian](https://obsidian.md) plugin that allows viewing [taskwarrior](https://taskwarrior.org/) tasks in Obsidian's reading view. This plugin requires a functional, externally installed taskwarrior installation.
 
-## Task tables
+## Reports
+### Task tables
 To include a table of tasks, use a `task-table` code block. The text inside the code block is parsed as YAML; include a key called `command` with the taskwarrior command that should be executed to generate the table. The syntax for this is exactly the same as the taskwarrior CLI syntax except that:
 
 - The report name must be the last token, and will not be defaulted if not provided. For example, `task +nonsense list` is legal, but `task list +nonsense` and `task +nonsense` are not.
@@ -29,7 +30,7 @@ command: task rc.context:home rc.report.list.filter:"status:pending" list
 ```
 ````
 
-## Task counts
+### Task counts
 To include a _count_ of the number of tasks, use a `task-count` code block. The text inside is parsed the same as a `task-table` code block.
 ````
 ```task-count
@@ -37,11 +38,22 @@ command: task rc.context:home rc.report.list.filter:"status:pending" list
 ```
 ````
 
-## ASCII task tables
+### ASCII task tables
 To include an ASCII table of tasks, use a `task-table-ascii` code block. The text inside is parsed the same as a `task-table` code block, except that the output is rendered as monospace ASCII instead of as an HTML table. You will likely need to include an override for the defaultWidth so lines are not wrapped; 80 appears to work for most situations.
 ````
 ```task-table-ascii
 command: task rc.defaultwidth:80 project:home list
+```
+````
+
+## Report actions
+Action buttons can be added to the `task-table` report. To include action buttons, add a list of enabled actions to the report's configuration under the key `actions`. Currently, the only supported action is refresh. Action buttons will be created in the order they are listed.
+
+````
+```task-table
+command: task rc.defaultwidth:80 project:home list
+actions:
+  - refresh
 ```
 ````
 
