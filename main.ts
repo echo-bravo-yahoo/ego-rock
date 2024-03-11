@@ -46,20 +46,40 @@ export default class EgoRock extends Plugin {
 		this.addSettingTab(new EgoRockSettingsTab(this.app, this))
 
 		this.registerMarkdownCodeBlockProcessor('task-table', (source, element, context) => {
-			this.doCommand(parseYaml(source).command, false, this.buildHTMLTable, [element, context])
+			this.doCommand(
+        parseYaml(source).command,
+        false,
+        this.buildHTMLTable,
+        this.handleHTMLTableError,
+        [element, context]
+      )
 		})
 
 		this.registerMarkdownCodeBlockProcessor('task-table-ascii', (source, element, context) => {
-			this.doCommand(parseYaml(source).command, true, this.buildASCIITable, [element, context])
+			this.doCommand(
+        parseYaml(source).command,
+        true,
+        this.buildASCIITable,
+        this.handleASCIITableError,
+        [element, context]
+      )
 		})
 	}
 
 	onunload() {
 	}
 
+  handleASCIITableError(error: Error, element: any, context: any) {
+		MarkdownRenderer.render(this.app, '```\n' + error.message + '\n```', element, context.sourcePath, this)
+  }
+
 	buildASCIITable(rawTable: string, el: any, context: MarkdownPostProcessorContext) {
 		MarkdownRenderer.render(this.app, '```\n' + rawTable + '\n```', el, context.sourcePath, this)
 	}
+
+  handleHTMLTableError(error: Error, element: any, context: any) {
+		MarkdownRenderer.render(this.app, '```\n' + error.message + '\n```', element, context.sourcePath, this)
+  }
 
 	buildHTMLTable(tableDescription: any, el: any) {
 		const [columns, rows] = tableDescription
@@ -123,7 +143,8 @@ export default class EgoRock extends Plugin {
 
 	buildCommand(commandString: string) {
 		const reports = this.getReportNames()
-		const report = commandString.replace(/^task /, '').split(' ').slice(-1)[0]
+    commandString = commandString.replace(/^task /, '')
+		const report = commandString.split(' ').slice(-1)[0]
 		const taskwarriorBin = this.settings.taskBinaryPath
 		if (reports.includes(report)) {
 			if (!commandString.contains('rc.defaultwidth:')) commandString = `rc.defaultwidth:1000 ${commandString}`
@@ -144,10 +165,14 @@ export default class EgoRock extends Plugin {
 			})
 	}
 
-	doCommand(commandString: string, raw: boolean, processor: any, processorArgs: any) {
-		const asciiTable = this.filterOutputToTable(execSync(this.buildCommand(commandString)))
-		return processor.call(this, raw ? asciiTable.join('\n') : this.buildTableDescription(asciiTable), ...processorArgs)
-	}
+  doCommand(commandString: string, raw: boolean, processor: any, errorProcessor: any, processorArgs: any) {
+    try {
+      const asciiTable = this.filterOutputToTable(execSync(this.buildCommand(commandString)))
+      return processor.call(this, raw ? asciiTable.join('\n') : this.buildTableDescription(asciiTable), ...processorArgs)
+    } catch (error) {
+      return errorProcessor.call(this, error, ...processorArgs)
+    }
+  }
 
 	getReport(report: string) {
 		return this.getReports().reduce((result, line) => {
