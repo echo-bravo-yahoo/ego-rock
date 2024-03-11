@@ -64,12 +64,29 @@ export default class EgoRock extends Plugin {
         [element, context]
       )
 		})
+		this.registerMarkdownCodeBlockProcessor('task-count', (source, element, context) => {
+			this.doCommand(
+        parseYaml(source).command,
+        false,
+        this.buildCount,
+        this.handleCountError,
+        [element, context]
+      )
+    })
 	}
 
 	onunload() {
 	}
 
-  handleASCIITableError(error: Error, element: any, context: any) {
+  handleCountError(error: Error, element: any, context: MarkdownPostProcessorContext) {
+		MarkdownRenderer.render(this.app, '```\n' + error.message + '\n```', element, context.sourcePath, this)
+  }
+
+	buildCount(tableDescription: any, el: any, context: MarkdownPostProcessorContext) {
+		MarkdownRenderer.render(this.app, '```\n' + tableDescription[1].length + '\n```', el, context.sourcePath, this)
+	}
+
+  handleASCIITableError(error: Error, element: any, context: MarkdownPostProcessorContext) {
 		MarkdownRenderer.render(this.app, '```\n' + error.message + '\n```', element, context.sourcePath, this)
   }
 
@@ -77,7 +94,7 @@ export default class EgoRock extends Plugin {
 		MarkdownRenderer.render(this.app, '```\n' + rawTable + '\n```', el, context.sourcePath, this)
 	}
 
-  handleHTMLTableError(error: Error, element: any, context: any) {
+  handleHTMLTableError(error: Error, element: any, context: MarkdownPostProcessorContext) {
 		MarkdownRenderer.render(this.app, '```\n' + error.message + '\n```', element, context.sourcePath, this)
   }
 
